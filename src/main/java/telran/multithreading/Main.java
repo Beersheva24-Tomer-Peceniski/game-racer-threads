@@ -1,33 +1,72 @@
 package telran.multithreading;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
+
+import telran.view.*;
 
 public class Main {
+    private static final int MAX_THREADS = 10;
+    private static final int MIN_THREADS = 2;
+    private static final int MIN_DISTANCE = 100;
+    private static final int MAX_DISTANCE = 3500;
+    private static final int MIN_SLEEP = 2;
+    private static final int MAX_SLEEP = 5;
+
     public static void main(String[] args) {
-        AtomicInteger firstThreadID = new AtomicInteger();
-        CountDownLatch latch = new CountDownLatch(1);
-        
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
-            System.out.println("What will be the distance?");
-            int distance = Integer.parseInt(reader.readLine());
-            System.out.println("What will be the number os participants?");
-            int participants = Integer.parseInt(reader.readLine());
-            
-            Race race = new Race(distance);
 
-            for(int i = 1; i <= participants; i++) {
-                Racer racer = new Racer(race, i, firstThreadID, latch);
-                racer.start();
-            }
+        InputOutput io = new StandardInputOutput();
+        Item[] items = getItems();
+        Menu menu = new Menu("Race Game", items);
+        menu.perform(io);
 
-            latch.await();
-            System.out.printf("Thread %d is the winner!", firstThreadID.get());
-
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-        }
     }
+
+    private static Item[] getItems() {
+        Item[] res = {
+                Item.of("Start new game", Main::startGame),
+                Item.ofExit()
+        };
+        return res;
+    }
+
+    static void startGame(InputOutput io) {
+        int nThreads = io.readNumberRange("Enter number of the racers", "Wrong number of the racers",
+                MIN_THREADS, MAX_THREADS).intValue();
+        int distance = io.readNumberRange("Enter distance",
+                "Wrong Distance", MIN_DISTANCE, MAX_DISTANCE).intValue();
+        Race race = new Race(distance, MIN_SLEEP, MAX_SLEEP);
+        Racer[] racers = new Racer[nThreads];
+        startRacers(racers, race);
+        race.startRace();
+        joinRacers(racers);
+        displayWinner(race);
+    }
+
+    private static void displayWinner(Race race) {
+        List<Racer> positions = race.getPositions();
+        for(int i = 0; i < positions.size(); i++) {
+            System.out.printf("Place: %d || %s%n", i + 1, positions.get(i).toString() );
+        }
+
+    }
+
+    private static void joinRacers(Racer[] racers) {
+        for (int i = 0; i < racers.length; i++) {
+            try {
+                racers[i].join();
+            } catch (InterruptedException e) {
+
+            }
+        }
+
+    }
+
+    private static void startRacers(Racer[] racers, Race race) {
+        for (int i = 0; i < racers.length; i++) {
+            racers[i] = new Racer(race, i + 1);
+            racers[i].start();
+        }
+
+    }
+
 }

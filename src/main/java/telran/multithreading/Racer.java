@@ -1,41 +1,43 @@
 package telran.multithreading;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Random;
 
 public class Racer extends Thread {
     private Race race;
     private int number;
-    private AtomicInteger firstThreadID;
-    private CountDownLatch latch;
+    private Long executionTime;
 
-    public Racer(Race race, int number, AtomicInteger firstThreadID, CountDownLatch latch) {
+    public Racer(Race race, int number) {
         this.race = race;
         this.number = number;
-        this.firstThreadID = firstThreadID;
-        this.latch = latch;
     }
 
+    @Override
     public void run() {
+        try {
+            race.startSignal.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        int minSleep = race.getMinSleep();
+        int maxSleep = race.getMaxSleep();
         int distance = race.getDistance();
-        Long sleepTime = race.sleepTime();
-        int i = 0;
-        while (i < distance) {
+        Random random = new Random();
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < distance; i++) {
             try {
-                sleep(sleepTime);
-                if(Integer.compare(0, firstThreadID.get()) != 0) {
-                    break;
-                }
-                System.out.println(number);
-                i++;
+                sleep(random.nextInt(minSleep, maxSleep + 1));
+                System.out.printf("%d - step %d\n", number, i);
             } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         }
+        long finish = System.currentTimeMillis();
+        executionTime = finish - start;
+        race.addPosition(this);
+    }
 
-        if(Integer.compare(0, firstThreadID.get()) == 0) {
-            firstThreadID.set(number);
-            latch.countDown();
-        }
+    @Override
+    public String toString() {
+        return "Racer number: " + Integer.toString(number) + " || Running Time: " + Long.toString(executionTime);
     }
 }

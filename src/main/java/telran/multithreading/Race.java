@@ -1,21 +1,45 @@
+
 package telran.multithreading;
 
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 public class Race {
-    private static long min_sleep_time = 100; // 0.1 seconds
-    private static long max_sleep_time = 1_000; // 1 seconds
     private int distance;
+    private int minSleep;
+    private int maxSleep;
+    CountDownLatch startSignal = new CountDownLatch(1);
+    private List<Racer> positions = new ArrayList<>();
 
-    public Race(int distance) {
+    public Race(int distance, int minSleep, int maxSleep) {
         this.distance = distance;
-    }
-
-    public Long sleepTime() {
-        return ThreadLocalRandom.current().nextLong(min_sleep_time, max_sleep_time + 1);
+        this.minSleep = minSleep;
+        this.maxSleep = maxSleep;
     }
 
     public int getDistance() {
         return distance;
     }
+
+    public int getMinSleep() {
+        return minSleep;
+    }
+
+    public int getMaxSleep() {
+        return maxSleep;
+    }
+
+    public void startRace() {
+        startSignal.countDown();
+    }
+
+    synchronized public void addPosition(Racer racer) {
+        positions.add(racer);
+    }
+
+    public List<Racer> getPositions() {
+        return positions;
+    }
+
 }
